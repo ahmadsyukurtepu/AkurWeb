@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AKUR - Sistem Antar Kurir</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    <style>
+        :root {
+            --primary: #2563eb; --secondary: #64748b; --success: #22c55e;
+            --warning: #f59e0b; --danger: #ef4444; --bg: #f8fafc; --dark: #1e293b;
+        }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; color: var(--dark); }
+        .hidden { display: none !important; }
+
+        /* --- UI LOGIN --- */
+        .login-container { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; }
+        .card { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 10px 15px rgba(0,0,0,0.1); width: 100%; max-width: 450px; }
+        .logo { text-align: center; font-size: 2.5rem; font-weight: 800; color: var(--primary); margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        
+        .tab-group { display: flex; background: #f1f5f9; padding: 5px; border-radius: 8px; margin-bottom: 20px; gap: 5px; }
+        .tab-btn { flex: 1; padding: 10px; cursor: pointer; border: none; background: transparent; font-weight: bold; border-radius: 6px; color: var(--secondary); font-size: 0.8rem; }
+        .tab-active { background: white; color: var(--primary); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        
+        input, textarea { width: 100%; padding: 12px; margin: 8px 0 15px 0; border: 1px solid #e2e8f0; border-radius: 8px; box-sizing: border-box; }
+        .btn-main { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; display: flex; justify-content: center; align-items: center; gap: 8px; }
+
+        /* --- DASHBOARD --- */
+        nav { background: white; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .container { max-width: 1000px; margin: 2rem auto; padding: 0 1.5rem; }
+        .table-container { background: white; border-radius: 12px; overflow-x: auto; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        table { width: 100%; border-collapse: collapse; min-width: 600px; }
+        th, td { padding: 15px; text-align: left; border-top: 1px solid #f1f5f9; }
+    </style>
+</head>
+<body>
+
+    <div id="pageLogin" class="login-container">
+        <div class="card">
+            <div class="logo"><i class="fas fa-truck-fast"></i>AKUR</div>
+            <div class="tab-group">
+                <button id="tabPelanggan" class="tab-btn tab-active" onclick="switchTab('pelanggan')">Pelanggan</button>
+                <button id="tabKurir" class="tab-btn" onclick="switchTab('kurir')">Kurir</button>
+                <button id="tabAdmin" class="tab-btn" onclick="switchTab('admin')">Admin</button>
+            </div>
+
+            <div id="formPelanggan">
+                <input type="text" id="p_nama" placeholder="Nama Anda">
+                <input type="number" id="p_wa" placeholder="No WhatsApp (628...)">
+                <button class="btn-main" onclick="loginPelanggan()">Masuk Pelanggan</button>
+            </div>
+
+            <div id="formKurir" class="hidden">
+                <input type="text" id="k_user" placeholder="Username Kurir">
+                <input type="password" id="k_pass" placeholder="Password Kurir">
+                <button class="btn-main" style="background: var(--success);" onclick="loginKurir()">Masuk Kurir</button>
+            </div>
+
+            <div id="formAdmin" class="hidden">
+                <input type="text" id="a_user" placeholder="AdminAkur">
+                <input type="password" id="a_pass" placeholder="Akur123">
+                <button class="btn-main" style="background: var(--dark);" onclick="loginAdmin()">Masuk Admin</button>
+            </div>
+        </div>
+    </div>
+
+    <nav id="navbar" class="hidden">
+        <div style="font-weight: bold; color: var(--primary);"><i class="fas fa-truck-fast"></i> AKUR</div>
+        <div id="userInfo" style="font-size: 0.8rem;"></div>
+        <button onclick="logout()" style="border:none; background:none; color:var(--danger); cursor:pointer; font-weight:bold;">Logout</button>
+    </nav>
+
+    <div id="pagePelanggan" class="container hidden">
+        <div class="card">
+            <h3>Kirim Pesanan Baru</h3>
+            <textarea id="orderDetail" rows="4" placeholder="Detail barang & alamat..."></textarea>
+            <button class="btn-main" onclick="pelangganKirimPesanan()">Kirim Pesanan</button>
+        </div>
+    </div>
+
+    <div id="pageAdmin" class="container hidden">
+        <h3>Pesanan Masuk</h3>
+        <div id="adminOrderList">Memuat pesanan...</div>
+
+        <h3>Armada Kurir</h3>
+        <div class="table-container">
+            <table id="kurirTable">
+                <thead><tr><th>Nama</th><th>Status</th><th>Aksi</th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="pageKurir" class="container hidden">
+        <div class="card" style="text-align:center;">
+            <h3 id="statusBadge">Memuat...</h3>
+            <button class="btn-main" style="background:var(--success);" onclick="kurirUpdateStatus('Aktif')">Set Aktif</button>
+            <br>
+            <button class="btn-main" style="background:var(--danger);" onclick="kurirUpdateStatus('Non-Aktif')">Set Off</button>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'https://sheetdb.io/api/v1/rpwgekpn7gk4o'; 
+        let currentUser = "";
+        let currentWA = "";
+
+        function switchTab(role) {
+            ['pelanggan', 'kurir', 'admin'].forEach(r => {
+                document.getElementById('tab' + r.charAt(0).toUpperCase() + r.slice(1)).classList.toggle('tab-active', role === r);
+                document.getElementById('form' + r.charAt(0).toUpperCase() + r.slice(1)).classList.toggle('hidden', role !== r);
+            });
+        }
+
+        function showDashboard(role, name) {
+            currentUser = name;
+            document.getElementById('pageLogin').classList.add('hidden');
+            document.getElementById('navbar').classList.remove('hidden');
+            document.getElementById('userInfo').innerText = role.toUpperCase() + ": " + name;
+            document.getElementById('page' + role.charAt(0).toUpperCase() + role.slice(1)).classList.remove('hidden');
+            if(role === 'admin') refreshAdminData();
+            if(role === 'kurir') refreshKurirStatus();
+        }
+
+        // --- AUTH ---
+        function loginPelanggan() {
+            const n = document.getElementById('p_nama').value;
+            currentWA = document.getElementById('p_wa').value;
+            if(n && currentWA) showDashboard('pelanggan', n);
+            else alert("Isi nama dan WA!");
+        }
+
+        function loginKurir() {
+            if(document.getElementById('k_user').value === "Kurir1") showDashboard('kurir', 'Kurir1');
+        }
+
+        function loginAdmin() {
+            if(document.getElementById('a_user').value === "AdminAkur") showDashboard('admin', 'Admin');
+        }
+
+        // --- CORE LOGIC ---
+        async function pelangganKirimPesanan() {
+            const detail = document.getElementById('orderDetail').value;
+            const data = { id: Date.now(), pelanggan: currentUser, wa: currentWA, detail: detail, status: "Menunggu Admin" };
+            await fetch(API_URL + "?sheet=pesanan", {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({data: [data]})
+            });
+            alert("Pesanan Terkirim!");
+            document.getElementById('orderDetail').value = "";
+        }
+
+        async function refreshAdminData() {
+            // Load Pesanan
+            const resP = await fetch(API_URL + "?sheet=pesanan");
+            const pesanan = await resP.json();
+            const list = document.getElementById('adminOrderList');
+            list.innerHTML = "";
+            pesanan.filter(p => p.status === "Menunggu Admin").forEach(p => {
+                list.innerHTML += `<div class="card">
+                    <strong>${p.pelanggan}</strong>: ${p.detail}
+                    <button class="btn-main" onclick="adminTunjukKurir('${p.id}')" style="margin-top:10px;">Tunjuk & Kirim WA Kurir</button>
+                </div>`;
+            });
+
+            // Load Kurir
+            const resK = await fetch(API_URL + "?sheet=kurir");
+            const kurirs = await resK.json();
+            const tbody = document.querySelector("#kurirTable tbody");
+            tbody.innerHTML = "";
+            kurirs.forEach(k => {
+                tbody.innerHTML += `<tr><td>${k.nama}</td><td>${k.status}</td><td><button onclick="adminSetKurirAktif('${k.nama}')">Reset Aktif</button></td></tr>`;
+            });
+        }
+
+        async function adminTunjukKurir(orderId) {
+            // 1. Ambil data kurir dan pesanan dari Spreadsheet secara real-time
+            const resK = await fetch(API_URL + "?sheet=kurir");
+            const kurirs = await resK.json();
+            
+            const resP = await fetch(API_URL + "?sheet=pesanan");
+            const seluruhPesanan = await resP.json();
+            const p = seluruhPesanan.find(item => item.id == orderId);
+
+            // 2. Cari kurir yang statusnya 'Aktif'
+            const aktif = kurirs.filter(k => k.status === 'Aktif' || k.status === 'aktif');
+            if(aktif.length === 0) return alert("Tidak ada kurir aktif!");
+
+            // 3. Pilih satu kurir secara acak
+            const terpilih = aktif[Math.floor(Math.random() * aktif.length)];
+            
+            try {
+                // 4. Update status di Spreadsheet (Agar kurir lain tidak mengambil tugas ini)
+                await fetch(API_URL + "/id/" + orderId + "?sheet=pesanan", {
+                    method: 'PATCH',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({data: {kurir: terpilih.nama, status: "Proses"}})
+                });
+                
+                await fetch(API_URL + "/nama/" + terpilih.nama + "?sheet=kurir", {
+                    method: 'PATCH',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({data: {status: "Mengangkut"}})
+                });
+
+                // 5. PENERUSAN MANUAL VIA wa.me/
+                // Kita merangkai teks pesan untuk dikirim ke WhatsApp Kurir
+                const teksPesan = `Halo *${terpilih.nama}*, ada tugas baru dari AKUR!%0A%0A` +
+                                  `*Pelanggan:* ${p.pelanggan}%0A` +
+                                  `*Detail:* ${p.detail}%0A` +
+                                  `*Kontak Pelanggan:* https://wa.me/${p.wa}%0A%0A` +
+                                  `Harap segera dikerjakan!`;
+
+                // Membuka WhatsApp menggunakan link standar wa.me/
+                window.open(`https://wa.me/${terpilih.wa}?text=${teksPesan}`, '_blank');
+                
+                alert(`Pesanan diberikan ke ${terpilih.nama}. Tab WhatsApp akan terbuka.`);
+                refreshAdminData();
+
+            } catch (error) {
+                alert("Gagal memperbarui data ke Spreadsheet.");
+                console.error(error);
+            }
+        }
+
+        function logout() { location.reload(); }
+    </script>
+</body>
+</html>
